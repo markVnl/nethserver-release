@@ -1,15 +1,18 @@
 {
-    # extra gpgkey's and conditional repo_gpgcheck for AltArchs
+    # extra gpgkey's, conditional repo_gpgcheck and conditional kernel repository for AltArchs
     our $repo_gpgcheck = '1';
     our $armhfp_gpgkey = "";
     our $aarch64_gpgkey = "";
+    our $altarch = 0;
     if ( -e '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-AltArch-Arm32' ) {
        $armhfp_gpgkey =  "\n       file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-AltArch-Arm32";
        $repo_gpgcheck = '0';
+       $altarch = 1;
     }
     if ( -e '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7-aarch64' ) {
        $aarch64_gpgkey = "\n       file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7-aarch64";
        $repo_gpgcheck = '0';
+       $altarch = 1;
     }
 
     our $communityEnabled = $subscription{'SystemId'} ? '0' : '1';
@@ -89,3 +92,20 @@ gpgcheck=1
 repo_gpgcheck=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
 enabled={$communityEnabled}
+
+{
+   # add (un-locked) kernel repository on ARM-AltArch systems
+   if ( $altarch ) {
+      $OUT .= qq (
+[ce-centos-kernel]
+name=CE-CentOS LTS Kernels for \$basearch
+mirrorlist=http://mirrorlist.centos.org/?release=\$releasever\&arch=\$basearch\&repo=kernel-kernel-\$kvariant\&infra=\$infra
+#baseurl=http://mirror.centos.org/altarch/7/kernel/\$basearch/kernel-\$kvariant
+pgcheck=1
+repo_gpgcheck=$repo_gpgcheck
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 $armhfp_gpgkey $aarch64_gpgkey
+enabled=$communityEnabled
+);
+   }
+' '
+}
